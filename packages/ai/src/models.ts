@@ -310,9 +310,7 @@ export interface CreateProviderOptions<TApi extends Api = Api> {
 	 * `Models.refresh(provider)`), and a later call retries.
 	 */
 	refreshModels?: () => Promise<readonly Model<TApi>[]>;
-	/**
-	 * Single implementation, or map keyed by `model.api` for mixed-API providers.
-	 */
+	/** Single implementation, or map keyed by `model.api` for mixed-API providers. */
 	api: ProviderStreams | Partial<Record<TApi, ProviderStreams>>;
 }
 
