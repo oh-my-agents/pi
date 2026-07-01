@@ -192,6 +192,32 @@ class ModelsImpl implements MutableModels {
 	}
 
 	getModel(provider: string, id: string): Model<Api> | undefined {
+		const prov = this.providers.get(provider);
+		if (prov) {
+			// Some providers support arbitrary dynamic models (like google-generative-ai)
+			// Check dynamic resolution if the standard getModels() doesn't have it
+			const models = prov.getModels();
+			const model = models.find((m) => m.id === id);
+			if (model) return model;
+
+			// If the provider supports dynamicModelHandler internally, we want Models to
+			// return it here too. Since Models is our main collection, we could expose it,
+			// but a simpler approach is to synthesize a model object if we know this provider supports it.
+			if (provider === "google" && (id.startsWith("gemini-") || id.startsWith("gemma-"))) {
+				return {
+					id,
+					name: id,
+					api: "google-generative-ai",
+					provider: "google",
+					baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+					reasoning: false,
+					input: ["text", "image"],
+					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+					contextWindow: 1048576,
+					maxTokens: 8192,
+				} as Model<"google-generative-ai">;
+			}
+		}
 		return this.getModels(provider).find((model) => model.id === id);
 	}
 
@@ -310,8 +336,15 @@ export interface CreateProviderOptions<TApi extends Api = Api> {
 	 * `Models.refresh(provider)`), and a later call retries.
 	 */
 	refreshModels?: () => Promise<readonly Model<TApi>[]>;
-	/** Single implementation, or map keyed by `model.api` for mixed-API providers. */
+	/**
+	 * Single implementation, or map keyed by `model.api` for mixed-API providers.
+	 */
 	api: ProviderStreams | Partial<Record<TApi, ProviderStreams>>;
+	/**
+	 * Optional function to dynamically resolve a model not in the static models list.
+	 * Returns the Model if it can be constructed, or undefined otherwise.
+	 */
+	dynamicModelHandler?: (modelId: string) => Model<TApi> | undefined;
 }
 
 /**
@@ -321,7 +354,7 @@ export interface CreateProviderOptions<TApi extends Api = Api> {
  * produces a stream error.
  */
 export function createProvider<TApi extends Api = Api>(input: CreateProviderOptions<TApi>): Provider<TApi> {
-	let models = input.models;
+	const models = input.models;
 	let inflightRefresh: Promise<void> | undefined;
 	const refreshModels = input.refreshModels;
 	const single =
@@ -343,18 +376,19 @@ export function createProvider<TApi extends Api = Api>(input: CreateProviderOpti
 		return run(streams);
 	};
 
+	let providerModels = models;
 	return {
 		id: input.id,
 		name: input.name ?? input.id,
 		baseUrl: input.baseUrl,
 		headers: input.headers,
 		auth: input.auth,
-		getModels: () => models,
+		getModels: () => providerModels,
 		refreshModels: refreshModels
 			? () => {
 					inflightRefresh ??= (async () => {
 						try {
-							models = await refreshModels();
+							providerModels = await refreshModels();
 						} finally {
 							inflightRefresh = undefined;
 						}
@@ -362,9 +396,26 @@ export function createProvider<TApi extends Api = Api>(input: CreateProviderOpti
 					return inflightRefresh;
 				}
 			: undefined,
-		stream: (model, context, options) => dispatch(model, (streams) => streams.stream(model, context, options)),
-		streamSimple: (model, context, options) =>
-			dispatch(model, (streams) => streams.streamSimple(model, context, options)),
+		stream: <T extends TApi>(model: Model<T>, context: Context, options?: ApiStreamOptions<T>) => {
+			let actualModel = model as Model<TApi>;
+			if (input.dynamicModelHandler && !providerModels.find((m) => m.id === model.id)) {
+				const dynamicModel = input.dynamicModelHandler(model.id);
+				if (dynamicModel) {
+					actualModel = dynamicModel;
+				}
+			}
+			return dispatch(actualModel, (streams) => streams.stream(actualModel as Model<T>, context, options));
+		},
+		streamSimple: (model, context, options) => {
+			let actualModel = model;
+			if (input.dynamicModelHandler && !providerModels.find((m) => m.id === model.id)) {
+				const dynamicModel = input.dynamicModelHandler(model.id);
+				if (dynamicModel) {
+					actualModel = dynamicModel;
+				}
+			}
+			return dispatch(actualModel, (streams) => streams.streamSimple(actualModel, context, options));
+		},
 	};
 }
 
