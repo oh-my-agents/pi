@@ -3,7 +3,7 @@
 
 import type { Model } from "../types.ts";
 
-export const GOOGLE_MODELS: Record<string, Model<"google-generative-ai">> = {
+export const GOOGLE_MODELS = {
 	"gemini-2.0-flash": {
 		id: "gemini-2.0-flash",
 		name: "Gemini 2.0 Flash",
@@ -287,42 +287,4 @@ export const GOOGLE_MODELS: Record<string, Model<"google-generative-ai">> = {
 		contextWindow: 262144,
 		maxTokens: 32768,
 	} satisfies Model<"google-generative-ai">,
-} as Record<string, Model<"google-generative-ai">>;
-
-export function addCustomGeminiModel(
-	modelId: string,
-	modelName?: string,
-	options?: {
-		reasoning?: boolean;
-		thinkingLevelMap?: Model<"google-generative-ai">["thinkingLevelMap"];
-		input?: Model<"google-generative-ai">["input"];
-		cost?: Model<"google-generative-ai">["cost"];
-		contextWindow?: number;
-		maxTokens?: number;
-	}
-) {
-	if (!modelId.startsWith("gemini-") && !modelId.startsWith("gemma-")) {
-		throw new Error("Custom model ID must start with 'gemini-' or 'gemma-'");
-	}
-
-	const newModel: Model<"google-generative-ai"> = {
-		id: modelId,
-		name: modelName ?? modelId,
-		api: "google-generative-ai",
-		provider: "google",
-		baseUrl: "https://generativelanguage.googleapis.com/v1beta",
-		reasoning: options?.reasoning ?? false,
-		thinkingLevelMap: options?.thinkingLevelMap,
-		input: options?.input ?? ["text", "image"],
-		cost: options?.cost ?? {
-			input: 0,
-			output: 0,
-			cacheRead: 0,
-			cacheWrite: 0,
-		},
-		contextWindow: options?.contextWindow ?? 1048576,
-		maxTokens: options?.maxTokens ?? 8192,
-	};
-	
-	GOOGLE_MODELS[modelId] = newModel;
-}
+} as const;
