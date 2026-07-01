@@ -3,7 +3,7 @@
 
 import type { Model } from "../types.ts";
 
-export const GOOGLE_MODELS: Record<string, Model<"google-generative-ai">> = {
+export const GOOGLE_MODELS = {
 	"gemini-2.0-flash": {
 		id: "gemini-2.0-flash",
 		name: "Gemini 2.0 Flash",
@@ -287,4 +287,4 @@ export const GOOGLE_MODELS: Record<string, Model<"google-generative-ai">> = {
 		contextWindow: 262144,
 		maxTokens: 32768,
 	} satisfies Model<"google-generative-ai">,
-} as Record<string, Model<"google-generative-ai">>;
+} as const;

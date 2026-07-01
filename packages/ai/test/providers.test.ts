@@ -8,6 +8,7 @@ import { anthropicProvider } from "../src/providers/anthropic.ts";
 import { cloudflareAIGatewayProvider } from "../src/providers/cloudflare-ai-gateway.ts";
 import { cloudflareWorkersAIProvider } from "../src/providers/cloudflare-workers-ai.ts";
 import { fauxAssistantMessage, fauxProvider } from "../src/providers/faux.ts";
+import { googleProvider } from "../src/providers/google.ts";
 import { googleVertexProvider } from "../src/providers/google-vertex.ts";
 import type { Api, Context, Model, ProviderStreams } from "../src/types.ts";
 import { AssistantMessageEventStream } from "../src/utils/event-stream.ts";
@@ -138,6 +139,19 @@ describe("builtin providers", () => {
 		const keyed = createModels({ authContext: fakeAuthContext({ GOOGLE_CLOUD_API_KEY: "vertex-key" }) });
 		keyed.setProvider(googleVertexProvider());
 		expect((await keyed.getAuth(model))?.auth.apiKey).toBe("vertex-key");
+	});
+
+	it("supports custom Google Generative AI provider URL and headers", () => {
+		const provider = googleProvider({
+			baseUrl: "https://gemini-proxy.example.com/v1beta",
+			headers: { "x-proxy-key": "proxy-key" },
+		});
+		const model = provider.getModels()[0];
+
+		expect(provider.baseUrl).toBe("https://gemini-proxy.example.com/v1beta");
+		expect(provider.headers).toEqual({ "x-proxy-key": "proxy-key" });
+		expect(model.baseUrl).toBe("https://gemini-proxy.example.com/v1beta");
+		expect(model.headers).toEqual({ "x-proxy-key": "proxy-key" });
 	});
 });
 
