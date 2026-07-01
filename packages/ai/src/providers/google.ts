@@ -26,7 +26,6 @@ export function googleProvider(options: GoogleProviderOptions = {}): Provider<"g
 		id: "google",
 		name: "Google",
 		baseUrl,
-		headers: options.headers,
 		auth: { apiKey: envApiKeyAuth("Gemini API key", ["GEMINI_API_KEY"]) },
 		models: Object.values(GOOGLE_MODELS).map((model) => ({
 			...model,

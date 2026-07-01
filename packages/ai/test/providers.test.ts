@@ -149,7 +149,6 @@ describe("builtin providers", () => {
 		const model = provider.getModels()[0];
 
 		expect(provider.baseUrl).toBe("https://gemini-proxy.example.com/v1beta");
-		expect(provider.headers).toEqual({ "x-proxy-key": "proxy-key" });
 		expect(model.baseUrl).toBe("https://gemini-proxy.example.com/v1beta");
 		expect(model.headers).toEqual({ "x-proxy-key": "proxy-key" });
 	});
