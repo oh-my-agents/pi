@@ -248,6 +248,19 @@ models.setProvider(openrouterProvider());
 
 Provider factories import their model catalog and a lazy API wrapper. They do not import other providers. With bundler code splitting, SDK implementations (`@anthropic-ai/sdk`, `openai`, `@google/genai`, etc.) stay in lazy chunks loaded on the first request to a model of that API.
 
+The Google factory accepts an optional `baseUrl` and `headers` to route Gemini requests through a proxy or gateway. Both are applied to every model in the catalog; a `null` header value suppresses that header:
+
+```typescript
+import { googleProvider } from '@earendil-works/pi-ai/providers/google';
+
+models.setProvider(googleProvider({
+  baseUrl: 'https://gemini-proxy.example.com/v1beta', // must include the version path
+  headers: { 'x-proxy-key': 'proxy-key' },
+}));
+```
+
+Note that `builtinModels()`/`builtinProviders()` register `googleProvider()` with defaults — to use a custom endpoint, register your configured instance with `setProvider`, which replaces the default one.
+
 ### All Built-in Providers
 
 For apps that want everything (as in Quick Start):
